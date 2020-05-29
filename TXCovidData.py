@@ -30,8 +30,13 @@ county_cases_sum = texas_county_data.groupby(['county'],as_index=False).agg({'ca
 county_cases_sum = county_cases_sum[:10]
 print(county_cases_sum)
 
+#group by county, sum and sort by total deaths
+county_deaths_sum = texas_county_data.groupby(['county'],as_index=False).agg({'deaths':'sum','fips':'mean','POP':'mean'}).sort_values(by='deaths',ascending=False)
+county_deaths_sum = county_deaths_sum[:10]
+print(county_deaths_sum)
 
-###TODO: make slice county out of fips column on county data
+
+
 ###TODO: make daily case/death increase df
 ###TODO: make per capita calcs
 ###TODO: find daily county with biggest one day increase
