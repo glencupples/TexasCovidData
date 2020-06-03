@@ -1,14 +1,11 @@
 #TXCovidData
 import pandas as pd
 import requests
-from datetime import date
+from datetime import date, timedelta
+import datetime
 import yagmail
 from EmailPassword import password
 from tabulate import tabulate
-
-date_today = date.today()
-date_today = date_today.strftime("%Y-%m-%d")
-print(date_today)
 
 #get texas census data
 census_get = requests.get(url = "https://api.census.gov/data/2019/pep/population?get=COUNTY,NAME,POP&for=county:*&in=state:48" ).json() #get all counties in TX
@@ -28,14 +25,26 @@ texas_county_data['fips'] = texas_county_data['fips'].astype(int)
 texas_county_data['cases'] = texas_county_data['cases'].astype(int)
 texas_county_data['deaths'] = texas_county_data['deaths'].astype(int)
 texas_county_data = pd.merge(texas_county_data, census_df, on='fips', how='inner') #join dfs to add population based on fips (state + county ID)
-counties = texas_county_data['county'].unique().tolist() #use this list to iterate through county for today's data?
 
 
-#cases per capita today
+#create yesterday and two days ago data
+date_yesterday = date.today() - timedelta(days = 1)
+date_yesterday = date_yesterday.strftime('%Y-%m-%d')
+date_twodaysago = date.today() - timedelta(days = 2)
+date_twodaysago = date_twodaysago.strftime('%Y-%m-%d')
+
+yesterday_county_data = texas_county_data.loc[texas_county_data['date'] == date_yesterday]
+twodaysago_county_data = texas_county_data.loc[texas_county_data['date'] == date_twodaysago]
 
 
 
-#deaths per capita today
+
+#calc case increase based on yesterday compared to two days ago
+
+increase = yesterday_county_data.set_index('county').subtract(twodaysago_county_data.set_index('county'), axis = 'cases')
+print(increase)
+
+
 
 
 ###TODO: make daily case/death increase df
