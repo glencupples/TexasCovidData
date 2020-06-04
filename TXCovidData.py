@@ -39,14 +39,32 @@ twodaysago_county_data = texas_county_data.loc[texas_county_data['date'] == date
 
 
 
-#calc case increase based on yesterday compared to two days ago
 
-increase = yesterday_county_data.set_index('county').subtract(twodaysago_county_data.set_index('county'), axis = 'cases')
-print(increase)
+#create two dfs and rename columns to yesterdaycases, todaycases, etc.. merge both dfs on fips
+compare_yesterday_data =  yesterday_county_data.copy()
+compare_yesterday_data.rename(columns = {'cases':'yesterdaycases', 'deaths':'yesterdaydeaths'}, inplace = True)
+compare_twodaysago_data = twodaysago_county_data.copy()
+compare_twodaysago_data.rename(columns = {'cases':'twodaysagocases','deaths':'twodaysagodeaths'}, inplace = True)
+compare_twodaysago_data = compare_twodaysago_data[['twodaysagocases','twodaysagodeaths','fips']] #reduce before joining
+compare_data = pd.merge(compare_yesterday_data, compare_twodaysago_data, on='fips', how='inner') #join dfs to be able to subtract two columns for increase
 
 
+#subtract columns for biggest case increase
+compare_case_data = compare_data.copy()
+compare_case_data['caseIncrease'] = compare_case_data['yesterdaycases']-compare_case_data['twodaysagocases']
+compare_case_data.sort_values('caseIncrease', ascending=False, inplace=True) 
+compare_case_data = compare_case_data[:10]
+compare_case_data = compare_case_data[['date','county','caseIncrease']]
+print(compare_case_data)
 
 
-###TODO: make daily case/death increase df
+#subtract columns for biggest death increase
+compare_death_data = compare_data.copy()
+compare_death_data['deathIncrease'] = compare_death_data['yesterdaydeaths']-compare_death_data['twodaysagodeaths']
+compare_death_data.sort_values('deathIncrease', ascending=False, inplace=True) 
+compare_death_data = compare_death_data[:10]
+compare_death_data = compare_death_data[['date','county','deathIncrease']]
+print(compare_death_data)
+
+
 ###TODO: make per capita calcs
-###TODO: find daily county with biggest one day increase
