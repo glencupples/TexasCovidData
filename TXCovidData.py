@@ -53,18 +53,32 @@ compare_data = pd.merge(compare_yesterday_data, compare_twodaysago_data, on='fip
 compare_case_data = compare_data.copy()
 compare_case_data['caseIncrease'] = compare_case_data['yesterdaycases']-compare_case_data['twodaysagocases']
 compare_case_data.sort_values('caseIncrease', ascending=False, inplace=True) 
-compare_case_data = compare_case_data[:10]
-compare_case_data = compare_case_data[['date','county','caseIncrease']]
-print(compare_case_data)
-
+display_case_data = compare_case_data[:5]
+display_case_data = display_case_data[['county','caseIncrease']]
+display_case_data = tabulate(display_case_data, headers = "keys", tablefmt="html", numalign="right", showindex=False) #tabulate formatting 
 
 #subtract columns for biggest death increase
 compare_death_data = compare_data.copy()
 compare_death_data['deathIncrease'] = compare_death_data['yesterdaydeaths']-compare_death_data['twodaysagodeaths']
 compare_death_data.sort_values('deathIncrease', ascending=False, inplace=True) 
-compare_death_data = compare_death_data[:10]
-compare_death_data = compare_death_data[['date','county','deathIncrease']]
-print(compare_death_data)
+display_death_data = compare_death_data[:5]
+display_death_data = display_death_data[['county','deathIncrease']]
+display_death_data = tabulate(display_death_data, headers = "keys", tablefmt="html", numalign="right", showindex=False) #tabulate formatting 
+
+#email it out
+yag = yagmail.SMTP("glen.cupples.dev@gmail.com",password)
+contents = [
+	# "Biggest per capita case increase:"+
+	# biggest_percapita_case_increase,
+	"Biggest case increase:"+
+    display_case_data,
+    # "Biggest per capita death increase:"+
+    # biggest_percapita_death_increase,
+    "Biggest death increase:"+
+    display_death_data,
+]
+yag.send('glen.cupples@gmail.com', 'TX Covid Update', contents)
 
 
 ###TODO: make per capita calcs
+###TODO: compare distance from highest case counties to Travis, or case count by 10 closest counties
