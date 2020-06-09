@@ -18,7 +18,7 @@ census_df['POP'] = census_df['POP'].astype(int) #convert to int
 census_df.rename({'POP': 'pop'}, axis=1, inplace=True)
 census_df = census_df[['fips','pop']] #reduce df
 
-#get all county covid data
+#get all county covid data and reduce to TX
 all_county_data = pd.read_csv('https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv') #make df with all counties
 texas_county_data = all_county_data[all_county_data['state']=='Texas'].copy() #reduce df to just TX
 texas_county_data['fips'] = texas_county_data['fips'].astype(int)
@@ -48,8 +48,19 @@ compare_twodaysago_data.rename(columns = {'cases':'twodaysagocases','deaths':'tw
 compare_twodaysago_data = compare_twodaysago_data[['twodaysagocases','twodaysagodeaths','fips']] #reduce before joining
 compare_data = pd.merge(compare_yesterday_data, compare_twodaysago_data, on='fips', how='inner') #join dfs to be able to subtract two columns for increase
 
+#top 5 county case count
+display_case_total = compare_data.sort_values('yesterdaycases', ascending=False) #yesterdaycases is field from merged df with most recent day's total
+display_case_total = display_case_total[:5]
+display_case_total = display_case_total[['county','yesterdaycases']]
+display_case_total = tabulate(display_case_total, headers = "keys", tablefmt="html", numalign="right", showindex=False) #tabulate formatting
 
-#subtract columns for biggest case increase
+#top 5 county death count
+display_death_total = compare_data.sort_values('yesterdaydeaths', ascending=False) #yesterdaydeaths is field from merged df with most recent day's total
+display_death_total = display_death_total[:5]
+display_death_total = display_death_total[['county','yesterdaydeaths']]
+display_death_total = tabulate(display_death_total, headers = "keys", tablefmt="html", numalign="right", showindex=False) #tabulate formatting
+
+#biggest case increase
 compare_case_data = compare_data.copy()
 compare_case_data['caseIncrease'] = compare_case_data['yesterdaycases']-compare_case_data['twodaysagocases']
 compare_case_data.sort_values('caseIncrease', ascending=False, inplace=True) 
@@ -57,7 +68,14 @@ display_case_data = compare_case_data[:5]
 display_case_data = display_case_data[['county','caseIncrease']]
 display_case_data = tabulate(display_case_data, headers = "keys", tablefmt="html", numalign="right", showindex=False) #tabulate formatting 
 
-#subtract columns for biggest death increase
+#biggest case increase per capita
+compare_case_data['casePerCapitaIncrease'] = compare_case_data['caseIncrease']/compare_case_data['pop']
+compare_case_data.sort_values('casePerCapitaIncrease', ascending=False, inplace=True) 
+display_casePCIncrease_data = compare_case_data[:5]
+display_casePCIncrease_data = display_casePCIncrease_data[['county','caseIncrease']]
+display_casePCIncrease_data = tabulate(display_casePCIncrease_data, headers = "keys", tablefmt="html", numalign="right", showindex=False) #tabulate formatting 
+
+#biggest death increase
 compare_death_data = compare_data.copy()
 compare_death_data['deathIncrease'] = compare_death_data['yesterdaydeaths']-compare_death_data['twodaysagodeaths']
 compare_death_data.sort_values('deathIncrease', ascending=False, inplace=True) 
@@ -65,20 +83,30 @@ display_death_data = compare_death_data[:5]
 display_death_data = display_death_data[['county','deathIncrease']]
 display_death_data = tabulate(display_death_data, headers = "keys", tablefmt="html", numalign="right", showindex=False) #tabulate formatting 
 
+#biggest death increase per capita
+compare_death_data['deathPerCapitaIncrease'] = compare_death_data['deathIncrease']/compare_death_data['pop']
+compare_death_data.sort_values('deathPerCapitaIncrease', ascending=False, inplace=True) 
+display_deathPCIncrease_data = compare_death_data[:5]
+display_deathPCIncrease_data = display_deathPCIncrease_data[['county','deathIncrease']]
+display_deathPCIncrease_data = tabulate(display_deathPCIncrease_data, headers = "keys", tablefmt="html", numalign="right", showindex=False) #tabulate formatting 
+
 #email it out
 yag = yagmail.SMTP("glen.cupples.dev@gmail.com",password)
 contents = [
-	# "Biggest per capita case increase:"+
-	# biggest_percapita_case_increase,
+	"Top 5 county case total"+
+	display_case_total,
+	"Top 5 county death total"+
+	display_death_total,
 	"Biggest case increase:"+
     display_case_data,
-    # "Biggest per capita death increase:"+
-    # biggest_percapita_death_increase,
+    "Biggest case increase per capita:"+
+    display_casePCIncrease_data,
     "Biggest death increase:"+
     display_death_data,
+    "Biggest death increase per capita:"+
+    display_deathPCIncrease_data,
 ]
-yag.send('glen.cupples@gmail.com', 'TX Covid Update', contents)
+yag.send('glen.cupples@gmail.com', 'TX Daily Covid Update', contents)
 
 
-###TODO: make per capita calcs
 ###TODO: compare distance from highest case counties to Travis, or case count by 10 closest counties
